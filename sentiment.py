@@ -1,37 +1,28 @@
 from textblob import TextBlob
+import bot
 from elasticsearch import Elasticsearch
 from tweepy.streaming import StreamListener
-from tweepy import OAuthHandler
 from tweepy import Stream
 import json
-import tweepy
 
-consumer_key=""
-consumer_secret=""
-
-access_token=""
-access_token_secret=""
 es = Elasticsearch()
-class StdOutListener(StreamListener):
+class MyStreamListener(StreamListener):
 
     def on_data(self, data):
         try:
             allData = json.loads(data)
             tweetText = TextBlob(allData["text"])
-        #if allData["geo"]:
 
             print tweetText
             print tweetText.sentiment.polarity
             print allData['entities']['hashtags']
             print allData['user']['location']
             print allData['user']['followers_count']
-            #print allData['location']
             print allData['favorite_count']
             #print allData['geo']
 
-        # "geo": allData['location'],
-        #    latitude = (allData["geo"]["coordinates"][0])
-        #    longitude = (allData["geo"]["coordinates"][1])
+            #latitude = (allData["geo"]["coordinates"][0])
+            #longitude = (allData["geo"]["coordinates"][1])
 
             if tweetText.sentiment.polarity > 0:
                 sentiment = "positive"
@@ -40,7 +31,7 @@ class StdOutListener(StreamListener):
             else:
                 sentiment = "negative"
 
-            es.index(index="blog-index17",
+            es.index(index="elastic",
                      doc_type="myType",
                      body={
                            "author": allData["user"]["screen_name"],
@@ -63,27 +54,14 @@ class StdOutListener(StreamListener):
         print(status)
 
 if __name__ == '__main__':
-    l = StdOutListener()
-    auth = OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
+    myBot = bot.TwitterBot()
 
+    l = MyStreamListener()
+    auth = myBot.getAuth()
     stream = Stream(auth, l)
-    api = tweepy.API(auth)
 
-    trends1 = api.trends_place(1)
-    # trends1 is a list with only one element in it, which is a dict
-    #print trends1
-    data = trends1[0]
-    # grab the trends
-    trends = data['trends']
-    # grab T.T
-    trend = (trends[0])
-    print "Trend name is ",trend['name']
-    #get name
-    name = str(trend['name'])
-
-
+    trend = myBot.getTrend()
 
     #start stream
-    stream.filter(languages=["en"],track = [name])
+    stream.filter(languages=["en"],track = [trend])
 
